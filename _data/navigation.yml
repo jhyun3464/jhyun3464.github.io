@@ -1,0 +1,7 @@
+main:
+- title: 홈
+  url: /
+- title: 소개
+  url: /about/
+- title: 태그
+  url: /tags/
