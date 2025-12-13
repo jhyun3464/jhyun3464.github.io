@@ -1,6 +1,6 @@
 author:
   avatar: /assets/images/logo.png
-  bio: Hacker News Ops Center
+  bio: jhinux 의 정리글
   location: Seoul, Korea
   name: jhinux
   url: https://jhinux.tistory.com/
@@ -15,7 +15,7 @@ defaults:
     read_time: true
     related: true
     share: false
-description: Hacker News & Tech Trends
+description: jhinux 의 정리글
 github_username: null
 locale: ko-KR
 logo: /assets/images/logo.png
