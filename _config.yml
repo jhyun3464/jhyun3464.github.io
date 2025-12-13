@@ -1,0 +1,23 @@
+author:
+  bio: Hacker News Ops Center
+  name: Editor
+defaults:
+- scope:
+    path: ''
+    type: posts
+  values:
+    author_profile: true
+    comments: false
+    layout: single
+    read_time: true
+    related: true
+    share: false
+description: Daily Hacker News Insights
+minimal_mistakes_skin: dark
+paginate: 5
+plugins:
+- jekyll-paginate
+- jekyll-include-cache
+- jekyll-seo-tag
+remote_theme: mmistakes/minimal-mistakes
+title: Tech Trends
