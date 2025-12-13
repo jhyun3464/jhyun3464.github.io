@@ -1,6 +1,9 @@
 author:
+  avatar: /assets/images/logo.png
   bio: Hacker News Ops Center
-  name: Editor
+  location: Seoul, Korea
+  name: jhinux
+  url: https://jhinux.tistory.com/
 defaults:
 - scope:
     path: ''
@@ -12,12 +15,20 @@ defaults:
     read_time: true
     related: true
     share: false
-description: Daily Hacker News Insights
+description: Hacker News & Tech Trends
+github_username: null
+locale: ko-KR
+logo: /assets/images/logo.png
 minimal_mistakes_skin: dark
 paginate: 5
 plugins:
+- jekyll-remote-theme
 - jekyll-paginate
 - jekyll-include-cache
 - jekyll-seo-tag
+- jekyll-feed
+- jekyll-sitemap
 remote_theme: mmistakes/minimal-mistakes
-title: Tech Trends
+repository: null
+title: jhinux's github pages
+url: ''
