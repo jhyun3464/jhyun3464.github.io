@@ -30,5 +30,5 @@ plugins:
 - jekyll-sitemap
 remote_theme: mmistakes/minimal-mistakes
 repository: null
-title: jhinux's github pages
-url: ''
+title: jhinux 의 페이지
+url: 'https://jhyun3464.github.io'
