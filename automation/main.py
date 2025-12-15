@@ -22,8 +22,6 @@ def load_config():
         "NAVER_OUTPUT_DIR": "./naver_posts",
         "HN_API_URL": "https://hacker-news.firebaseio.com/v0/topstories.json",
         "HN_ITEM_URL": "https://hacker-news.firebaseio.com/v0/item/{}.json",
-        "TOUR_API_URL": "https://apis.data.go.kr/B551011/EngService2/areaBasedList2",
-        "TOUR_DETAIL_URL": "https://apis.data.go.kr/B551011/EngService2/detailCommon2",
         "SCHEDULE_INTERVAL_MINUTES": 240
     }
 
@@ -35,8 +33,6 @@ def load_config():
     # STRICTLY enforce Env vars over Config file if Env vars exist (even if Config has value)
     if os.environ.get("GEMINI_API_KEY"):
         config["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
-    if os.environ.get("TOUR_API_KEY"):
-        config["TOUR_API_KEY"] = os.environ.get("TOUR_API_KEY")
 
     return config
 
@@ -68,29 +64,16 @@ def get_gemini_summary(text, prompt_type="tech", language="en"):
 
         lang_instruction = "ENGLISH" if language == "en" else "KOREAN"
 
-        if prompt_type == "tech":
-            prompt = f"""
-            Analyze the following technical content:
-            {text[:8000]}
+        prompt = f"""
+        Analyze the following technical content:
+        {text[:8000]}
 
-            Provide a summary in {lang_instruction} (Markdown format).
-            Structure:
-            1. **Title**: Catchy {lang_instruction} title (Keep it relevant to the original).
-            2. **Summary**: 3 concise bullet points.
-            3. **Key Takeaway**: 1 sentence insight.
-            """
-        else: # travel
-            prompt = f"""
-            Analyze the following travel destination info:
-            {text[:4000]}
-
-            Provide a blog post in {lang_instruction} (Markdown format).
-            Structure:
-            1. **Title**: Attractive travel title.
-            2. **Intro**: Why visit here?
-            3. **Highlights**: What to see?
-            4. **Tips**: Practical info.
-            """
+        Provide a summary in {lang_instruction} (Markdown format).
+        Structure:
+        1. **Title**: Catchy {lang_instruction} title (Keep it relevant to the original).
+        2. **Summary**: 3 concise bullet points.
+        3. **Key Takeaway**: 1 sentence insight.
+        """
 
         response = model.generate_content(prompt)
         return response.text
@@ -264,96 +247,10 @@ def run_tech_bot():
     except Exception as e:
         print(f"TechBot Error: {e}")
 
-def run_travel_bot():
-    print("Running TravelBot...")
-    try:
-        target_content_type = random.choice([76, 82, 85])
-
-        params = {
-            "serviceKey": CONFIG["TOUR_API_KEY"],
-            "numOfRows": 20,
-            "pageNo": random.randint(1, 5),
-            "MobileOS": "ETC",
-            "MobileApp": "AutoBlog",
-            "_type": "json",
-            "arrange": "P",
-            "contentTypeId": target_content_type
-        }
-
-        response = requests.get(CONFIG["TOUR_API_URL"], params=params)
-        data = response.json()
-
-        items = data.get('response', {}).get('body', {}).get('items', {}).get('item', [])
-        if not items:
-            print(f"No travel items found for type {target_content_type}.")
-            return
-
-        random.shuffle(items)
-
-        item = None
-        for cand in items:
-            if not db_manager.is_travel_posted(cand.get("contentid")):
-                # STRICT RULE: Official Images Only
-                if cand.get("firstimage") or cand.get("firstimage2"):
-                    item = cand
-                    break
-
-        if not item:
-            print("No new Travel items with IMAGES found in this batch.")
-            return
-
-        title = item.get("title", "Unknown Spot")
-        addr = item.get("addr1", "")
-        content_id = item.get("contentid")
-        # We already confirmed it has an image in the loop above
-        image_url = item.get("firstimage") or item.get("firstimage2")
-
-        print(f"Selected Travel Spot: {title} (Type {target_content_type})")
-
-        detail_params = {
-            "serviceKey": CONFIG["TOUR_API_KEY"],
-            "numOfRows": 1,
-            "pageNo": 1,
-            "MobileOS": "ETC",
-            "MobileApp": "AutoBlog",
-            "_type": "json",
-            "contentId": content_id,
-            "defaultYN": "Y",
-            "firstImageYN": "Y",
-            "addrinfoYN": "Y",
-            "mapinfoYN": "Y",
-            "overviewYN": "Y"
-        }
-
-        detail_resp = requests.get(CONFIG["TOUR_DETAIL_URL"], params=detail_params)
-        detail_data = detail_resp.json()
-        detail_item = detail_data.get('response', {}).get('body', {}).get('items', {}).get('item', [{}])[0]
-
-        overview = detail_item.get("overview", "No details available.")
-
-        # Double check detail image, though list image was present
-        final_image_url = detail_item.get("firstimage") or detail_item.get("firstimage2") or image_url
-
-        # 1. English Content
-        blog_post_en = get_gemini_summary(f"Spot: {title}\nAddress: {addr}\nOverview: {overview}", prompt_type="travel", language="en")
-        final_content_en = f"![{title}]({final_image_url})\n\n{blog_post_en}\n\n**Address**: {addr}"
-        save_markdown_post(f"Travel: {title}", final_content_en, category="travel")
-
-        # 2. Korean Content (Naver Blog - Disabled for Server Automation)
-        # blog_post_kr = get_gemini_summary(f"Spot: {title}\nAddress: {addr}\nOverview: {overview}", prompt_type="travel", language="ko")
-        # final_content_kr = f"{blog_post_kr}\n\n**주소**: {addr}"
-        # save_naver_post(f"한국 여행 추천: {title}", final_content_kr, final_image_url)
-
-        db_manager.log_travel_post(content_id, title)
-
-    except Exception as e:
-        print(f"TravelBot Error: {e}")
-
 
 def job():
     print(f"--- Job Started: {datetime.now()} ---")
     run_tech_bot()
-    run_travel_bot()
     git_push()
     print("--- Job Finished ---")
 
