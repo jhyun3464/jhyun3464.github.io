@@ -1,0 +1,40 @@
+name: Daily Tech Update
+
+on:
+  schedule:
+    # 09:00 KST = 00:00 UTC
+    # 15:00 KST = 06:00 UTC
+    - cron: '0 0,6 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run TechBot
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: |
+        python automation/main.py
+
+    - name: Commit and push changes
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: "Auto-update: Daily Tech Post"
+        branch: ${{ github.ref }}

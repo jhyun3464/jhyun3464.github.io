@@ -1,7 +1,0 @@
-TITLE: IT 트렌드: macOS 26.2 enables fast AI clusters with RDMA over Thunderbolt
-
-![Tech Image](https://image.pollinations.ai/prompt/Technology%20concept%3A%20macOS%2026.2%20enables%20fast%20AI%20clusters%20with%20RDMA%20over%20Thunderbolt%2C%20vibrant%20K-Webtoon%20style%2C%20bold%20outlines%2C%20dynamic%20angles%2C%20bright%20colors%2C%20anime%20inspired%2C%20high%20quality%2C%202D%20art%2C%20no%20text)
-
-Gemini API Key missing. Placeholder summary.
-
-[Original Source](https://developer.apple.com/documentation/macos-release-notes/macos-26_2-release-notes#RDMA-over-Thunderbolt)
