@@ -1,0 +1,7 @@
+google-generativeai
+schedule
+gitpython
+requests
+pyyaml
+Pillow
+trafilatura
