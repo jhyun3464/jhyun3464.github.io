@@ -129,7 +129,7 @@ def generate_image_url(prompt, style="realistic", fallback_text="Tech"):
     url = f"https://image.pollinations.ai/prompt/{encoded_prompt}"
     return url
 
-def save_markdown_post(title, content, category="tech", date=None):
+def save_markdown_post(title, content, image_url=None, category="tech", date=None):
     if date is None:
         date = datetime.now()
 
@@ -138,12 +138,20 @@ def save_markdown_post(title, content, category="tech", date=None):
 
     clean_title = title.replace('"', "'").replace(":", " -")
 
+    # Minimal Mistakes Header Image Config
+    header_config = ""
+    if image_url:
+        header_config = f"""header:
+  overlay_image: {image_url}
+  teaser: {image_url}"""
+
     md_content = f"""---
 layout: post
 title: "{clean_title}"
 date: {date_str}
 categories: [{category}]
 tags: [{category}, update]
+{header_config}
 ---
 
 {content}
@@ -221,9 +229,12 @@ def run_tech_bot():
         # Image Strategy: Webtoon -> Fallback Text
         image_url = generate_image_url(f"Technology concept: {story['title']}", style="webtoon")
 
-        # Directly use Pollinations URL without HEAD check to avoid false negatives in CI/CD
-        final_content_en = f"![Tech Image]({image_url})\n\n{summary_en}\n\n[Original Source]({story.get('url', '#')})"
-        save_markdown_post(f"Tech Trend: {story['title']}", final_content_en, category="tech")
+        # Clean summary to remove potential markdown code blocks
+        summary_en = summary_en.replace("```markdown", "").replace("```", "").strip()
+
+        # Pass image_url to save_markdown_post for Front Matter integration
+        final_content_en = f"{summary_en}\n\n[Original Source]({story.get('url', '#')})"
+        save_markdown_post(f"Tech Trend: {story['title']}", final_content_en, image_url=image_url, category="tech")
 
         # 2. Korean Content (Naver Blog - Disabled for Server Automation)
         # summary_kr = get_gemini_summary(content_for_ai, prompt_type="tech", language="ko")
