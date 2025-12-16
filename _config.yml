@@ -1,9 +1,9 @@
 author:
   avatar: /assets/images/logo.png
-  bio: jhinux 의 정리글
+  bio: hyeon's Tech News
   location: Seoul, Korea
-  name: jhinux
-  url: https://jhinux.tistory.com/
+  name: hyeon
+  url: https://jhyun3464.github.io
 defaults:
 - scope:
     path: ''
@@ -31,5 +31,5 @@ plugins:
 - jekyll-sitemap
 remote_theme: mmistakes/minimal-mistakes
 repository: null
-title: jhinux 의 페이지
+title: hyeon's Tech News
 url: 'https://jhyun3464.github.io'
