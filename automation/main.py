@@ -221,20 +221,7 @@ def run_tech_bot():
         # Image Strategy: Webtoon -> Fallback Text
         image_url = generate_image_url(f"Technology concept: {story['title']}", style="webtoon")
 
-        # Verify if Pollinations URL is valid/reachable (simple check), otherwise use text thumbnail
-        # Since Pollinations usually returns a valid URL string even if it fails later,
-        # we will assume it works unless we want to do a strict requests.head check.
-        # However, to honor the "fallback" request, let's try to verify.
-        try:
-            check_response = requests.head(image_url, timeout=5)
-            if check_response.status_code != 200:
-                raise Exception("Image URL unreachable")
-        except Exception:
-            print("Webtoon image generation failed or unreachable. Falling back to text thumbnail.")
-            local_thumb = create_text_thumbnail(story['title'], "tech_thumb")
-            if local_thumb:
-                image_url = local_thumb
-
+        # Directly use Pollinations URL without HEAD check to avoid false negatives in CI/CD
         final_content_en = f"![Tech Image]({image_url})\n\n{summary_en}\n\n[Original Source]({story.get('url', '#')})"
         save_markdown_post(f"Tech Trend: {story['title']}", final_content_en, category="tech")
 
