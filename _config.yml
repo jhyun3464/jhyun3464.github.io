@@ -21,6 +21,7 @@ locale: ko-KR
 logo: /assets/images/logo.png
 minimal_mistakes_skin: dark
 paginate: 5
+future: true
 plugins:
 - jekyll-remote-theme
 - jekyll-paginate
