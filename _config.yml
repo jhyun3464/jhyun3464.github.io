@@ -15,7 +15,7 @@ defaults:
     read_time: true
     related: true
     share: false
-description: hyeon's Tech News
+description: jhinux 의 정리글
 github_username: null
 locale: ko-KR
 logo: /assets/images/logo.png
