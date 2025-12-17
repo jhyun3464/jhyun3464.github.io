@@ -17,9 +17,7 @@ def load_config():
     # Priority: Environment Variables > config.json > Defaults
     config = {
         "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
-        "TOUR_API_KEY": os.environ.get("TOUR_API_KEY", ""),
         "GITHUB_REPO_PATH": ".",
-        "NAVER_OUTPUT_DIR": "./naver_posts",
         "HN_API_URL": "https://hacker-news.firebaseio.com/v0/topstories.json",
         "HN_ITEM_URL": "https://hacker-news.firebaseio.com/v0/item/{}.json",
         "SCHEDULE_INTERVAL_MINUTES": 240
@@ -38,9 +36,9 @@ def load_config():
 
 CONFIG = load_config()
 
-# Ensure Naver output dir exists
-os.makedirs(CONFIG["NAVER_OUTPUT_DIR"], exist_ok=True)
-os.makedirs("assets/images", exist_ok=True) # For local thumbnails
+# Ensure local image output dir exists
+os.makedirs("assets/images/posts", exist_ok=True)
+os.makedirs("assets/images", exist_ok=True)
 
 # Initialize DB
 db_manager.init_db()
@@ -54,25 +52,32 @@ if gemini_key:
 
 def get_gemini_summary(text, prompt_type="tech", language="en"):
     """
-    Generates a summary using Gemini in specific language.
+    Generates a deep, professional technical summary using Gemini.
     """
     if not gemini_key:
         return "Gemini API Key missing. Placeholder summary."
 
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
         lang_instruction = "ENGLISH" if language == "en" else "KOREAN"
 
+        # Refined prompt for professional technical summary
         prompt = f"""
-        Analyze the following technical content:
-        {text[:8000]}
+        You are a Senior Technology Editor for a high-profile tech blog.
+        Analyze the following technical content deeply:
+        {text[:10000]}
 
-        Provide a summary in {lang_instruction} (Markdown format).
-        Structure:
-        1. **Title**: Catchy {lang_instruction} title (Keep it relevant to the original).
-        2. **Summary**: 3 concise bullet points.
-        3. **Key Takeaway**: 1 sentence insight.
+        Provide a professional, technical summary in {lang_instruction} (Markdown format).
+
+        Structure Requirements:
+        1. **Title**: A professional, engaging title that captures the technical essence (No clickbait).
+        2. **Executive Summary**: A high-level overview of the article's core message (2-3 sentences).
+        3. **Key Technical Details**: Bullet points covering the specific technologies, algorithms, methodologies, or findings discussed. Be specific.
+        4. **Industry Impact / Analysis**: A deeper insight into why this matters for the tech industry or software engineering field.
+
+        Tone: Professional, Insightful, Technical.
+        Do not use markdown code blocks (like ```markdown) in the output, just raw markdown text.
         """
 
         response = model.generate_content(prompt)
@@ -81,55 +86,60 @@ def get_gemini_summary(text, prompt_type="tech", language="en"):
         print(f"Gemini Error: {e}")
         return "Summary generation failed."
 
-def create_text_thumbnail(text, filename_prefix):
+def get_image_prompt_from_gemini(text):
     """
-    Creates a simple text thumbnail using Pillow if AI image generation fails.
+    Asks Gemini to describe an image based on the article content, suitable for a Webtoon style.
     """
+    if not gemini_key:
+        return "Technology concept, abstract, futuristic"
+
     try:
-        width, height = 800, 400
-        color = (random.randint(50, 200), random.randint(50, 200), random.randint(50, 200))
-        img = Image.new('RGB', (width, height), color=color)
-        d = ImageDraw.Draw(img)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"""
+        Based on the following article content, describe a scene for a header image in 1-2 sentences.
+        The style should be suitable for a high-quality Webtoon (Korean comic) illustration.
+        Focus on visual elements, characters, or futuristic landscapes that represent the topic.
 
-        # Simple text wrapping
-        words = text.split()
-        lines = []
-        current_line = []
-        for word in words:
-            if len(" ".join(current_line + [word])) * 15 < width - 40: # Rough estimation
-                current_line.append(word)
-            else:
-                lines.append(" ".join(current_line))
-                current_line = [word]
-        lines.append(" ".join(current_line))
+        Content:
+        {text[:2000]}
 
-        y_text = 100
-        for line in lines[:3]: # Limit to 3 lines
-            d.text((50, y_text), line, fill=(255, 255, 255))
-            y_text += 50
-
-        timestamp = int(datetime.now().timestamp())
-        filename = f"assets/images/{filename_prefix}_{timestamp}.png"
-        img.save(filename)
-        return f"/{filename}"
+        Output ONLY the visual description in English. Do not add 'Image of...' or 'Draw a...'.
+        """
+        response = model.generate_content(prompt)
+        return response.text.strip()
     except Exception as e:
-        print(f"Thumbnail generation failed: {e}")
-        return None
+        print(f"Gemini Image Prompt Error: {e}")
+        return "Futuristic technology concept, webtoon style"
 
-def generate_image_url(prompt, style="realistic", fallback_text="Tech"):
+def download_image(prompt, filename_prefix):
     """
-    Generates an image URL using Pollinations.ai.
+    Generates an image using Pollinations.ai with the given prompt and downloads it.
+    Returns the local file path.
     """
-    if style == "webtoon":
-        full_prompt = f"{prompt}, vibrant K-Webtoon style, bold outlines, dynamic angles, bright colors, anime inspired, high quality, 2D art, no text"
-    else:
-        full_prompt = prompt
+    full_prompt = f"{prompt}, vibrant K-Webtoon style, bold outlines, dynamic angles, bright colors, anime inspired, high quality, 2D art, masterpiece, 8k resolution, no text"
 
     encoded_prompt = requests.utils.quote(full_prompt)
     url = f"https://image.pollinations.ai/prompt/{encoded_prompt}"
-    return url
 
-def save_markdown_post(title, content, image_url=None, category="tech", date=None):
+    timestamp = int(datetime.now().timestamp())
+    filename = f"assets/images/posts/{filename_prefix}_{timestamp}.jpg"
+
+    try:
+        print(f"Downloading image from: {url}")
+        response = requests.get(url, timeout=30)
+        if response.status_code == 200:
+            with open(filename, 'wb') as f:
+                f.write(response.content)
+            print(f"Image saved to {filename}")
+            return f"/{filename}" # Return absolute path for Jekyll
+        else:
+            print(f"Image download failed. Status: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Image download error: {e}")
+        return None
+
+def save_markdown_post(title, content, image_path=None, category="tech", date=None):
     if date is None:
         date = datetime.now()
 
@@ -140,10 +150,10 @@ def save_markdown_post(title, content, image_url=None, category="tech", date=Non
 
     # Minimal Mistakes Header Image Config
     header_config = ""
-    if image_url:
+    if image_path:
         header_config = f"""header:
-  overlay_image: {image_url}
-  teaser: {image_url}"""
+  overlay_image: {image_path}
+  teaser: {image_path}"""
 
     md_content = f"""---
 layout: post
@@ -162,16 +172,6 @@ tags: [{category}, update]
 
     print(f"Saved GH Page post: {filename}")
     return filename
-
-def save_naver_post(title, content, image_url=None):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{CONFIG['NAVER_OUTPUT_DIR']}/naver_{timestamp}.md"
-
-    image_tag = f"![Main Image]({image_url})\n\n" if image_url else ""
-
-    with open(filename, "w", encoding="utf-8") as f:
-        f.write(f"# {title}\n\n{image_tag}{content}")
-    print(f"Saved Naver MD draft: {filename}")
 
 def git_push():
     try:
@@ -223,22 +223,24 @@ def run_tech_bot():
 
         content_for_ai = f"Title: {story['title']}\n\nContent:\n{article_text}"
 
-        # 1. English Content
+        # 1. English Content Summary (Professional)
         summary_en = get_gemini_summary(content_for_ai, prompt_type="tech", language="en")
 
-        # Image Strategy: Webtoon -> Fallback Text
-        image_url = generate_image_url(f"Technology concept: {story['title']}", style="webtoon")
+        # 2. Image Generation Strategy
+        # Ask Gemini for a prompt based on content
+        image_prompt_text = get_image_prompt_from_gemini(content_for_ai)
+        print(f"Generated Image Prompt: {image_prompt_text}")
+
+        # Download the image
+        safe_title = "".join(x for x in story['title'] if x.isalnum())[:20]
+        local_image_path = download_image(image_prompt_text, f"tech_{safe_title}")
 
         # Clean summary to remove potential markdown code blocks
         summary_en = summary_en.replace("```markdown", "").replace("```", "").strip()
 
-        # Pass image_url to save_markdown_post for Front Matter integration
+        # Pass local_image_path to save_markdown_post for Front Matter integration
         final_content_en = f"{summary_en}\n\n[Original Source]({story.get('url', '#')})"
-        save_markdown_post(f"Tech Trend: {story['title']}", final_content_en, image_url=image_url, category="tech")
-
-        # 2. Korean Content (Naver Blog - Disabled for Server Automation)
-        # summary_kr = get_gemini_summary(content_for_ai, prompt_type="tech", language="ko")
-        # save_naver_post(f"IT 트렌드: {story['title']}", summary_kr, image_url)
+        save_markdown_post(f"Tech Trend: {story['title']}", final_content_en, image_path=local_image_path, category="tech")
 
         db_manager.log_tech_post(story_id, story['title'])
 
