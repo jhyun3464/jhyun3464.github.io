@@ -58,7 +58,7 @@ def get_gemini_summary(text, prompt_type="tech", language="en"):
         return "Gemini API Key missing. Placeholder summary."
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         lang_instruction = "ENGLISH" if language == "en" else "KOREAN"
 
@@ -94,7 +94,7 @@ def get_image_prompt_from_gemini(text):
         return "Technology concept, abstract, futuristic"
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = f"""
         Based on the following article content, describe a scene for a header image in 1-2 sentences.
         The style should be suitable for a high-quality Webtoon (Korean comic) illustration.
