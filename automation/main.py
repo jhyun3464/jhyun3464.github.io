@@ -150,10 +150,16 @@ def save_markdown_post(title, content, image_path=None, category="tech", date=No
 
     # Minimal Mistakes Header Image Config
     header_config = ""
+    image_embed = ""
     if image_path:
         header_config = f"""header:
   overlay_image: {image_path}
   teaser: {image_path}"""
+        # Embed image directly in body as requested
+        image_embed = f"![Header Image]({image_path})\n\n"
+
+    # Add Return to Home link
+    home_link = "\n\n---\n[< Back to Home](/)"
 
     md_content = f"""---
 layout: post
@@ -164,7 +170,7 @@ tags: [{category}, update]
 {header_config}
 ---
 
-{content}
+{image_embed}{content}{home_link}
 """
     os.makedirs("_posts", exist_ok=True)
     with open(filename, "w", encoding="utf-8") as f:
