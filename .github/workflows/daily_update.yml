@@ -1,6 +1,8 @@
 name: Daily Tech Update
 
 on:
+  push:
+    branches: [ "main", "master" ]
   schedule:
     # 09:00 KST = 00:00 UTC
     # 15:00 KST = 06:00 UTC
