@@ -55,10 +55,10 @@ def get_gemini_summary(text, prompt_type="tech", language="en"):
     Generates a deep, professional technical summary using Gemini.
     """
     if not gemini_key:
-        return "Gemini API Key missing. Placeholder summary."
+        return None
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         lang_instruction = "ENGLISH" if language == "en" else "KOREAN"
 
@@ -84,7 +84,7 @@ def get_gemini_summary(text, prompt_type="tech", language="en"):
         return response.text
     except Exception as e:
         print(f"Gemini Error: {e}")
-        return "Summary generation failed."
+        return None
 
 def get_image_prompt_from_gemini(text):
     """
@@ -94,7 +94,7 @@ def get_image_prompt_from_gemini(text):
         return "Technology concept, abstract, futuristic"
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = f"""
         Based on the following article content, describe a scene for a header image in 1-2 sentences.
         The style should be suitable for a high-quality Webtoon (Korean comic) illustration.
@@ -119,7 +119,7 @@ def get_tags_from_gemini(text):
         return ["Tech", "News"]
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = f"""
         Analyze the following technical article content and extract 5-8 relevant keywords/tags.
 
@@ -285,10 +285,14 @@ def run_tech_bot():
         local_image_path = download_image(image_prompt_text, f"tech_{safe_title}")
 
         # Clean summary to remove potential markdown code blocks
-        summary_en = summary_en.replace("```markdown", "").replace("```", "").strip()
+        if summary_en:
+            summary_en = summary_en.replace("```markdown", "").replace("```", "").strip()
+            final_content_en = f"{summary_en}\n\n[Original Source]({story.get('url', '#')})"
+        else:
+            # If summary failed, just post the link (or skip, but user just said don't print error msg)
+            final_content_en = f"[Original Source]({story.get('url', '#')})"
 
         # Pass local_image_path to save_markdown_post for Front Matter integration
-        final_content_en = f"{summary_en}\n\n[Original Source]({story.get('url', '#')})"
         # Removed "Tech Trend: " prefix and passing dynamic tags
         save_markdown_post(story['title'], final_content_en, tags=tags_list, image_path=local_image_path, category="tech")
 
