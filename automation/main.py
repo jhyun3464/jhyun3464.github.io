@@ -58,7 +58,7 @@ def get_gemini_summary(text, prompt_type="tech", language="en"):
         return "Gemini API Key missing. Placeholder summary."
 
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
         lang_instruction = "ENGLISH" if language == "en" else "KOREAN"
 
@@ -94,7 +94,7 @@ def get_image_prompt_from_gemini(text):
         return "Technology concept, abstract, futuristic"
 
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         prompt = f"""
         Based on the following article content, describe a scene for a header image in 1-2 sentences.
         The style should be suitable for a high-quality Webtoon (Korean comic) illustration.
@@ -110,6 +110,37 @@ def get_image_prompt_from_gemini(text):
     except Exception as e:
         print(f"Gemini Image Prompt Error: {e}")
         return "Futuristic technology concept, webtoon style"
+
+def get_tags_from_gemini(text):
+    """
+    Generates a list of tags (English and Korean) for the given text using Gemini.
+    """
+    if not gemini_key:
+        return ["Tech", "News"]
+
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"""
+        Analyze the following technical article content and extract 5-8 relevant keywords/tags.
+
+        Requirements:
+        1.  Provide tags in **both English and Korean**. (e.g., if "AI" is relevant, include both "AI" and "인공지능").
+        2.  Format the output as a strict JSON list of strings.
+        3.  Do not include any markdown formatting (like ```json). Just the raw list.
+
+        Content:
+        {text[:3000]}
+
+        Output Example:
+        ["Artificial Intelligence", "인공지능", "Machine Learning", "머신러닝", "Python"]
+        """
+        response = model.generate_content(prompt)
+        # Clean up potential markdown code blocks if the model ignores instruction
+        cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
+        return json.loads(cleaned_text)
+    except Exception as e:
+        print(f"Gemini Tag Generation Error: {e}")
+        return ["Tech", "Update"]
 
 def download_image(prompt, filename_prefix):
     """
@@ -139,7 +170,7 @@ def download_image(prompt, filename_prefix):
         print(f"Image download error: {e}")
         return None
 
-def save_markdown_post(title, content, image_path=None, category="tech", date=None):
+def save_markdown_post(title, content, tags=None, image_path=None, category="tech", date=None):
     if date is None:
         date = datetime.now()
 
@@ -161,12 +192,20 @@ def save_markdown_post(title, content, image_path=None, category="tech", date=No
     # Add Return to Home link
     home_link = "\n\n---\n[< Back to Home](/)"
 
+    # Format tags for YAML
+    if tags:
+        # Convert list to YAML-friendly format [tag1, tag2]
+        # Use json.dumps to handle quotes and unicode safely
+        tags_str = json.dumps(tags, ensure_ascii=False)
+    else:
+        tags_str = f"[{category}, update]"
+
     md_content = f"""---
 layout: post
 title: "{clean_title}"
 date: {date_str}
 categories: [{category}]
-tags: [{category}, update]
+tags: {tags_str}
 {header_config}
 ---
 
@@ -237,6 +276,10 @@ def run_tech_bot():
         image_prompt_text = get_image_prompt_from_gemini(content_for_ai)
         print(f"Generated Image Prompt: {image_prompt_text}")
 
+        # Generate Tags
+        tags_list = get_tags_from_gemini(content_for_ai)
+        print(f"Generated Tags: {tags_list}")
+
         # Download the image
         safe_title = "".join(x for x in story['title'] if x.isalnum())[:20]
         local_image_path = download_image(image_prompt_text, f"tech_{safe_title}")
@@ -246,7 +289,8 @@ def run_tech_bot():
 
         # Pass local_image_path to save_markdown_post for Front Matter integration
         final_content_en = f"{summary_en}\n\n[Original Source]({story.get('url', '#')})"
-        save_markdown_post(f"Tech Trend: {story['title']}", final_content_en, image_path=local_image_path, category="tech")
+        # Removed "Tech Trend: " prefix and passing dynamic tags
+        save_markdown_post(story['title'], final_content_en, tags=tags_list, image_path=local_image_path, category="tech")
 
         db_manager.log_tech_post(story_id, story['title'])
 
